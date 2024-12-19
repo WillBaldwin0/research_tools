@@ -38,6 +38,23 @@ def strip_all_but(configs, keys_lst):
             del config.arrays[key]
 
 
+def fix_aims_output_keys(configs):
+    for config in configs:
+        for quantity in ['dipole', 'free_energy', 'energy', 'stress']:
+            if quantity in config.info:
+                config.info['AIMS_' + quantity] = config.info[quantity]
+                del config.info[quantity]
+        for quantity in ['forces']:
+            if quantity in config.arrays:
+                config.arrays['AIMS_' + quantity] = config.arrays[quantity]
+                del config.arrays[quantity]
+        
+        if 'modifed_DMA_coeficients' in config.arrays:
+            config.arrays['AIMS_atom_multipoles'] = config.arrays['modifed_DMA_coeficients']
+            del config.arrays['modifed_DMA_coeficients']
+            del config.arrays['DMA_coeficients']
+
+
 def strip_all(configs):
     strip_all_but(configs, [])
 
