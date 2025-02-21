@@ -2,19 +2,25 @@ import os
 import numpy as np
 
 
-def get_valid_set(folder, allset):
+def get_valid_set(folder, allset, suffix=None):
     import os 
     contents = [item for item in os.listdir(folder) if (os.path.isfile(os.path.join(folder, item)) and item[:13]=='valid_indices')]
     if len(contents) == 0:
         raise FileNotFoundError('no valid indcies file')
     elif len(contents) > 1:
-        raise ValueError('many valid indices')
+        if suffix is None:
+            raise ValueError('many valid indices, need suffix')
+        else:
+            filename = f'valid_indices_{suffix}.txt'
     else:
-        with open(os.path.join(folder, contents[0])) as f:
-            numbers = [int(line) for line in f.readlines()]
+        filename = contents[0]
+        
+    with open(os.path.join(folder, filename)) as f:
+        numbers = [int(line) for line in f.readlines()]
     trainset = []
     validset = []
     for i in range(len(allset)):
+        allset[i].info['train_index'] = i
         if i in numbers:
             validset.append(allset[i])
         else:

@@ -3,8 +3,30 @@
 import pandas as pd
 import re
 import warnings
+import glob
+import dataclasses
+import json 
+import os 
+import numpy as np
 
-def parse_last_two_tables_from_log(log_path):
+
+colors = [
+    "#1f77b4",  # muted blue
+    "#d62728",  # brick red
+    "#ff7f0e",  # safety orange
+    "#2ca02c",  # cooked asparagus green
+    "#9467bd",  # muted purple
+    "#8c564b",  # chestnut brown
+    "#e377c2",  # raspberry yogurt pink
+    "#7f7f7f",  # middle gray
+    "#bcbd22",  # curry yellow-green
+    "#17becf",  # blue-teal
+]
+
+
+
+
+def parse_last_two_tables_from_log(log_path, return_all=False):
     """
     Parse the last two ASCII error tables from the specified log file.
     
@@ -62,6 +84,7 @@ def parse_last_two_tables_from_log(log_path):
         
         if len(row_lines) < 2:
             # Not a complete table or no data
+            print(row_lines)
             continue
         
         # The first row_lines entry should be the header
@@ -92,7 +115,10 @@ def parse_last_two_tables_from_log(log_path):
         
         dataframes.append(df)
     
-    # Issue warnings if fewer than two tables are found
+    # Issue warnings if fewer than two tables are found\
+    if return_all:
+        return dataframes
+    
     if len(dataframes) == 0:
         warnings.warn(
             f"No ASCII tables found in log file '{log_path}'. Returning None, None.",
@@ -108,3 +134,105 @@ def parse_last_two_tables_from_log(log_path):
     else:
         # Return the last two tables
         return dataframes[-2], dataframes[-1]
+
+
+@dataclasses.dataclass
+class RunInfo:
+    name: str
+    seed: int
+
+
+def parse_path(path: str) -> RunInfo:
+    name_re = re.compile(r"(?P<name>.+)_run-(?P<seed>\d+)_train.txt")
+    match = name_re.match(os.path.basename(path))
+    if not match:
+        raise RuntimeError(f"Cannot parse {path}")
+
+    return RunInfo(name=match.group("name"), seed=int(match.group("seed")))
+
+
+
+def parse_training_results(path: str):
+    run_info = parse_path(path)
+    results = []
+    with open(path, mode="r", encoding="utf-8") as f:
+        for line in f:
+            d = json.loads(line)
+            d["name"] = run_info.name
+            d["seed"] = run_info.seed
+            results.append(d)
+
+    return results
+
+
+def plot_test_in_training(ax, data: pd.DataFrame, min_epoch, test_name, property, **kwargs) -> None:
+    data = data[data["epoch"] > min_epoch]
+    for_test = data.groupby(["name", "mode", "epoch", "test_name"]).agg([np.mean, np.std]).reset_index()
+    test_data = data[data["mode"] == "eval_test"]
+    test_data = test_data[test_data["test_name"] == test_name]
+    
+    ax.plot(
+        test_data["epoch"],
+        test_data[property],
+        **kwargs,
+        zorder=1,
+        label=test_name,
+    )
+    ax.set_xlabel("Epoch")
+    ax.legend()
+
+
+
+def plot_training_run(axes, data: pd.DataFrame, min_epoch, **kwargs) -> None:
+    data = data[data["epoch"] > min_epoch]
+
+    if "test_name" in data.columns:
+        for_test = data.groupby(["name", "mode", "epoch", "test_name"]).agg([np.mean, np.std]).reset_index()
+        data = data.drop(columns="test_name")
+        data = data.groupby(["name", "mode", "epoch"]).agg([np.mean, np.std]).reset_index()
+    else:
+        data = data.groupby(["name", "mode", "epoch"]).agg([np.mean, np.std]).reset_index()
+
+    valid_data = data[data["mode"] == "eval"]
+    train_data = data[data["mode"] == "opt"]
+
+
+    ax = axes[0]
+    ax.plot(
+        valid_data["epoch"],
+        valid_data["loss"]["mean"],
+        **kwargs,
+        zorder=1,
+        label="Validation",
+    )
+    ax.plot(
+        train_data["epoch"],
+        train_data["loss"]["mean"],
+        **kwargs,
+        linestyle='--',
+        zorder=1,
+        label="Training",
+    )
+    ax.set_xlabel("Epoch")
+    ax.set_ylabel("Loss")
+    ax.legend()
+
+    ax = axes[1]
+    ax.plot(
+        valid_data["epoch"],
+        valid_data["mae_e"]["mean"],
+        **kwargs,
+        zorder=1,
+        label="MAE Energy [eV]",
+    )
+    ax.plot(
+        valid_data["epoch"],
+        valid_data["mae_f"]["mean"],
+        **kwargs,
+        linestyle='--',
+        zorder=1,
+        label="MAE Forces [eV/Å]",
+    )
+    ax.set_xlabel("Epoch")
+    ax.legend()
+

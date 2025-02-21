@@ -48,7 +48,7 @@ def correlation_plot(
     
     if key2 is not None:
         if peratom:
-            values2 = [getattr(item, in_dict)[key2] / factor for item in lst2]
+            values2 = [getattr(item, in_dict)[key2] / len(item) for item in lst2]
         else:
             values2 = [getattr(item, in_dict)[key2] for item in lst2]
     else:

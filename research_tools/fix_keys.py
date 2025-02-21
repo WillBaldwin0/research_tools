@@ -5,7 +5,7 @@ import numpy as np
 def add_total_charge(configs, value=None, key='AIMS_atom_multipoles'):
     for config in configs:
         if value is None:
-            Q = np.sum(config.arrays[key])
+            Q = np.sum(config.arrays[key][:,0])
             config.info['total_charge'] = Q
         else:
             config.info['total_charge'] = value
@@ -18,6 +18,16 @@ def strip_keys(configs, keys):
                 del item.info[key]
             if key in item.arrays.keys():
                 del item.arrays[key]
+
+
+def exchange_keys(configs, key_pairs):
+    assert type(key_pairs==list) and type(key_pairs[0] == tuple)
+    for config in configs:
+        for (oldkey, newkey) in key_pairs:
+            if oldkey in config.info.keys():
+                config.info[newkey] = config.info.pop(oldkey)
+            if oldkey in config.arrays.keys():
+                config.arrays[newkey] = config.arrays.pop(oldkey)
 
 
 def strip_all_but(configs, keys_lst):
