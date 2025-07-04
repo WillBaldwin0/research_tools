@@ -41,13 +41,13 @@ def split_list_by_fraction(lst, fraction):
     return train, test
 
 
-def split_to_configtypes(lst):
+def split_to_configtypes(lst, configkey='config_type'):
     cfg_types = {}
     for att in lst:
-        if not att.info['config_type'] in cfg_types.keys():
-            cfg_types[att.info['config_type']] = [att]
+        if not att.info[configkey] in cfg_types.keys():
+            cfg_types[att.info[configkey]] = [att]
         else:
-            cfg_types[att.info['config_type']].append(att)
+            cfg_types[att.info[configkey]].append(att)
     return cfg_types
 
 
