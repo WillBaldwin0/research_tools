@@ -24,6 +24,21 @@ colors = [
 ]
 
 
+def get_valid_losses_from_logfile(log_path):
+    with open(log_path, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+
+    model_select_lines = [line for i, line in enumerate(lines) if 'Loaded model from epoch' in line]
+    selected_models_epochs = [line.split()[-1] for line in model_select_lines]
+    
+    lowest_losses = []
+    for epoch_number in selected_models_epochs:
+        losses = []
+        for line in lines:
+            if f"INFO: Epoch {epoch_number}" in line:
+                losses.append(float(line.split()[5].split("=")[1][:-1]))
+        lowest_losses.append(losses[-1])
+    return lowest_losses
 
 
 def parse_last_two_tables_from_log(log_path, return_all=False):

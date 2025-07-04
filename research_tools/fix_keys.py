@@ -78,7 +78,7 @@ def add_dipole_from_multipoles(configs, force=False, key='AIMS_atom_multipoles')
         dd = np.sum(ds, axis=0)
         if not force:
             assert 'AIMS_dipole' not in item.info
-        item.info['AIMS_dipole'] = dd
+        item.info['AIMS_dipole'] = dd + charge_component
 
 
 def set_config_dipole_weight(configs, setting):
